@@ -1,0 +1,56 @@
+image: python:latest
+
+stages:
+  - install
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python -V
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+InstallRequirements:
+  stage: install
+  script:
+    - pip install -r */requirements.txt
+  tags:
+    - common
+    - cpu
+
+TestCode:
+  stage: test
+  script:
+    - cd task-testing-python
+    - PYTHONPATH=src python -m pytest --cov --junitxml=../report.xml src tests
+  dependencies:
+    - InstallRequirements
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    expire_in: 2 weeks
+  tags:
+    - common
+    - cpu
+
+LintCode:
+  stage: test
+  script:
+    - cd task-testing-python
+    - pip install flake8
+    - PYTHONPATH=src python -m flake8 src
+  dependencies:
+    - InstallRequirements
+  tags:
+    - common
+    - cpu
